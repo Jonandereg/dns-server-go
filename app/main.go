@@ -50,12 +50,10 @@ type DNSMessage struct {
 }
 
 func (dm *DNSMessage) writeResponse() []byte {
-	response := make([]byte, 512)
 	dm.writeHeader()
-	response = append(response, dm.header...)
-
-	return response
+	return dm.header
 }
+
 func (dm *DNSMessage) writeHeader() {
 	header := make([]byte, 12)
 	id := uint16(1234)
