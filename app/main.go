@@ -109,7 +109,7 @@ func buildFlags() uint16 {
 func (dm *DNSMessage) writeQuestion() error {
 	buf := bytes.NewBuffer([]byte{})
 
-	qname, err := buildQuestionName("codecrafter.io")
+	qname, err := buildQuestionName("codecrafters.io")
 	if err != nil {
 		return fmt.Errorf("failed to build question name: %v", err)
 	}
