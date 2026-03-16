@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 )
 
@@ -36,7 +35,11 @@ func main() {
 		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
 		dnsMessage := DNSMessage{}
-		response := dnsMessage.writeResponse()
+		response, err := dnsMessage.writeResponse()
+		if err != nil {
+			fmt.Println("Error writing response:", err)
+			break
+		}
 
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
@@ -49,15 +52,21 @@ type DNSMessage struct {
 	header   []byte
 	question []byte
 	answer   []byte
+	Flags
+}
+type Flags struct {
+	qCount uint16
 }
 
-func (dm *DNSMessage) writeResponse() []byte {
+func (dm *DNSMessage) writeResponse() ([]byte, error) {
+	if err := dm.writeQuestion(); err != nil {
+		return nil, err
+	}
 	dm.writeHeader()
-	dm.writeQuestion()
 	res := make([]byte, 0, 32)
 	res = append(res, dm.header...)
 	res = append(res, dm.question...)
-	return res
+	return res, nil
 }
 
 func (dm *DNSMessage) writeHeader() {
@@ -98,27 +107,27 @@ func buildFlags() uint16 {
 	return flags
 }
 
-func (dm *DNSMessage) writeQuestion() {
+func (dm *DNSMessage) writeQuestion() error {
 	buf := bytes.NewBuffer([]byte{})
 
 	qname, err := buildQuestionName("codecrafter.io")
 	if err != nil {
-		fmt.Println("Failed to build question name:", err)
+		return fmt.Errorf("failed to build question name: %v", err)
 	}
 	buf.Write(qname)
 
 	recordType := uint16(1)
 	if err := binary.Write(buf, binary.BigEndian, recordType); err != nil {
-		fmt.Println("Failed to write recordType:", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write recordType: %v", err)
 	}
 
 	recordClass := uint16(1)
 	if err := binary.Write(buf, binary.BigEndian, recordClass); err != nil {
-		fmt.Println("Failed to write recordClass:", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write recordClass: %v", err)
 	}
+	dm.qCount = uint16(1)
 	dm.question = buf.Bytes()
+	return nil
 }
 
 func buildQuestionName(d string) ([]byte, error) {
