@@ -30,12 +30,9 @@ func main() {
 			fmt.Println("Error receiving data:", err)
 			break
 		}
-		rawRequest := buf[:size]
-		receivedData := string(rawRequest)
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
 		dnsMessage := DNSMessage{
-			rawRequest: rawRequest,
+			rawRequest: buf[:size],
 		}
 		if err := dnsMessage.parseQuery(); err != nil {
 			fmt.Println("Failed to parse DNS message:", err)
@@ -74,14 +71,15 @@ type Flags struct {
 
 func (dm *DNSMessage) writeResponse() ([]byte, error) {
 	q, err := dm.writeQuestion()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to write question: %v", err)
 	}
+
 	a, err := dm.writeAnswer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to write answer: %v", err)
 	}
+
 	h := dm.writeHeader()
 	res := make([]byte, 0, 32)
 	res = append(res, h...)
@@ -222,7 +220,11 @@ func parseFlags(f uint16) Flags {
 	aa := (f >> 10) & 1
 	truncation := (f >> 9) & 1
 	rd := (f >> 8) & 1
-	rCode := f & 0b1111
+	rCode := uint16(0)
+	if opcode != 0 {
+		rCode = uint16(4)
+	}
+
 	return Flags{
 		qr:         qr,
 		opCode:     opcode,
