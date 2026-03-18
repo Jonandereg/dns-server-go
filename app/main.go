@@ -295,6 +295,7 @@ func parseQuestionName(n []byte) (string, error) {
 		}
 		name += string(label) + "."
 	}
+	strings.TrimSuffix(name, ".")
 
 	return name, nil
 }
