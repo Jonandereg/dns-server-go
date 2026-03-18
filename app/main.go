@@ -293,7 +293,7 @@ func parseQuestionName(n []byte) (string, error) {
 		if _, err := r.Read(label); err != nil {
 			return "", fmt.Errorf("failed to read label:%v", err)
 		}
-		name += string(label)
+		name += string(label) + "."
 	}
 
 	return name, nil
