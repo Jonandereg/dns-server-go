@@ -155,7 +155,6 @@ func (dm *DNSMessage) writeQuestion() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, recordClass); err != nil {
 		return nil, fmt.Errorf("failed to write recordClass: %v", err)
 	}
-	dm.header.qCount = uint16(1)
 
 	return buf.Bytes(), nil
 }
@@ -192,6 +191,7 @@ func (dm *DNSMessage) writeAnswer() ([]byte, error) {
 		return nil, fmt.Errorf("failed to write length: %v", err)
 	}
 	buf.Write(testIp)
+	dm.header.qCount = uint16(1)
 	dm.header.anCount = uint16(1)
 
 	return buf.Bytes(), nil
@@ -201,6 +201,9 @@ func (dm *DNSMessage) parseQuery() error {
 	dm.reader = bytes.NewReader(dm.rawRequest)
 	if err := dm.parseHeader(); err != nil {
 		return fmt.Errorf("failed to parse header: %v", err)
+	}
+	if err := dm.parseQuestion(); err != nil {
+		return fmt.Errorf("failed to parse question: %v", err)
 	}
 	return nil
 }
