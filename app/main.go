@@ -140,22 +140,11 @@ func writeFlags(f Flags) uint16 {
 func (dm *DNSMessage) writeQuestions() ([]byte, error) {
 	buf := bytes.NewBuffer([]byte{})
 	for i := 0; i < int(dm.header.qCount); i++ {
-		qname, err := writeQuestionName(dm.questions[i].Name)
+		question, err := writeQuestion(dm.questions[i])
 		if err != nil {
-			return nil, fmt.Errorf("failed to build questionMsg name: %v", err)
+			return nil, fmt.Errorf("failed to write question: %v", err)
 		}
-		buf.Write(qname)
-
-		recordType := dm.questions[i].Type
-		if err := binary.Write(buf, binary.BigEndian, recordType); err != nil {
-			return nil, fmt.Errorf("failed to write recordType: %v", err)
-		}
-
-		recordClass := dm.questions[i].Class
-		if err := binary.Write(buf, binary.BigEndian, recordClass); err != nil {
-			return nil, fmt.Errorf("failed to write recordClass: %v", err)
-		}
-
+		buf.Write(question)
 	}
 
 	return buf.Bytes(), nil
@@ -176,25 +165,35 @@ func writeQuestionName(d string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func writeQuestion(q Question) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	qname, err := writeQuestionName(q.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build questionMsg name: %v", err)
+	}
+	buf.Write(qname)
+
+	recordType := q.Type
+	if err := binary.Write(buf, binary.BigEndian, recordType); err != nil {
+		return nil, fmt.Errorf("failed to write recordType: %v", err)
+	}
+
+	recordClass := q.Class
+	if err := binary.Write(buf, binary.BigEndian, recordClass); err != nil {
+		return nil, fmt.Errorf("failed to write recordClass: %v", err)
+	}
+	return buf.Bytes(), nil
+}
+
 func (dm *DNSMessage) writeAnswer() ([]byte, error) {
 	testIp := net.ParseIP("127.0.0.1").To4()
 	buf := bytes.NewBuffer([]byte{})
 	for i := 0; i < int(dm.header.qCount); i++ {
-		qname, err := writeQuestionName(dm.questions[i].Name)
+		question, err := writeQuestion(dm.questions[i])
 		if err != nil {
-			return nil, fmt.Errorf("failed to build questionMsg name: %v", err)
+			return nil, fmt.Errorf("failed to write question: %v", err)
 		}
-		buf.Write(qname)
-
-		recordType := dm.questions[i].Type
-		if err := binary.Write(buf, binary.BigEndian, recordType); err != nil {
-			return nil, fmt.Errorf("failed to write recordType: %v", err)
-		}
-
-		recordClass := dm.questions[i].Class
-		if err := binary.Write(buf, binary.BigEndian, recordClass); err != nil {
-			return nil, fmt.Errorf("failed to write recordClass: %v", err)
-		}
+		buf.Write(question)
 		ttl := uint32(60)
 		if err := binary.Write(buf, binary.BigEndian, ttl); err != nil {
 			return nil, fmt.Errorf("failed to write ttl: %v", err)
