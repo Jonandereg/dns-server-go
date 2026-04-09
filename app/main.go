@@ -291,6 +291,7 @@ func parseQuestionName(n []byte, off int) (string, int, error) {
 		b := n[off]
 		if b == 0x00 {
 			name = strings.TrimSuffix(name, ".")
+			off++
 			break
 		}
 		if b&0xC0 == 0xC0 {
