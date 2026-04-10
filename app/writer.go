@@ -19,7 +19,7 @@ func (dm *DNSMessage) writeResponse() ([]byte, error) {
 		return nil, fmt.Errorf("failed to write answer: %v", err)
 	}
 
-	h := dm.writeHeader()
+	h := dm.writeHeader(nil)
 	res := make([]byte, 0, 32)
 	res = append(res, h...)
 	res = append(res, q...)
@@ -27,7 +27,7 @@ func (dm *DNSMessage) writeResponse() ([]byte, error) {
 	return res, nil
 }
 
-func (dm *DNSMessage) writeHeader() []byte {
+func (dm *DNSMessage) writeHeader(qCount *uint16) []byte {
 	header := make([]byte, 12)
 
 	binary.BigEndian.PutUint16(header[0:2], dm.header.ID)
@@ -35,7 +35,11 @@ func (dm *DNSMessage) writeHeader() []byte {
 	flags := writeFlags(dm.header.Flags)
 
 	binary.BigEndian.PutUint16(header[2:4], flags)
-	binary.BigEndian.PutUint16(header[4:6], dm.header.qCount)
+	if qCount != nil {
+		binary.BigEndian.PutUint16(header[4:6], *qCount)
+	} else {
+		binary.BigEndian.PutUint16(header[4:6], dm.header.qCount)
+	}
 	binary.BigEndian.PutUint16(header[6:8], dm.header.anCount)
 	nsCount := uint16(0)
 	binary.BigEndian.PutUint16(header[8:10], nsCount)
@@ -118,35 +122,35 @@ func writeQuestion(q Question) ([]byte, error) {
 }
 
 func (dm *DNSMessage) writeAnswer() ([]byte, error) {
+	dm.header.anCount = dm.header.qCount
+	buf := bytes.NewBuffer([]byte{})
+	for i := 0; i < int(dm.header.qCount); i++ {
+		question, err := writeQuestion(dm.questions[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to write question: %v", err)
+		}
+		buf.Write(question)
+	}
 	if dm.forwardAddress == "" {
 		testIp := net.ParseIP("127.0.0.1").To4()
-		buf := bytes.NewBuffer([]byte{})
-		for i := 0; i < int(dm.header.qCount); i++ {
-			question, err := writeQuestion(dm.questions[i])
-			if err != nil {
-				return nil, fmt.Errorf("failed to write question: %v", err)
-			}
-			buf.Write(question)
-			ttl := uint32(60)
-			if err := binary.Write(buf, binary.BigEndian, ttl); err != nil {
-				return nil, fmt.Errorf("failed to write ttl: %v", err)
-			}
-			length := uint16(len(testIp))
-			if err := binary.Write(buf, binary.BigEndian, length); err != nil {
-				return nil, fmt.Errorf("failed to write length: %v", err)
-			}
-			buf.Write(testIp)
+		ttl := uint32(60)
+		if err := binary.Write(buf, binary.BigEndian, ttl); err != nil {
+			return nil, fmt.Errorf("failed to write ttl: %v", err)
 		}
-
-		dm.header.anCount = dm.header.qCount
+		length := uint16(len(testIp))
+		if err := binary.Write(buf, binary.BigEndian, length); err != nil {
+			return nil, fmt.Errorf("failed to write length: %v", err)
+		}
+		buf.Write(testIp)
 
 		return buf.Bytes(), nil
 	}
 
-	answer, err := dm.forwardRequest()
+	answers, err := dm.forwardRequest()
 	if err != nil {
 		return nil, fmt.Errorf("failed to forward request: %v", err)
 	}
+	buf.Write(answers)
 
-	return answer, nil
+	return buf.Bytes(), nil
 }
