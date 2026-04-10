@@ -21,7 +21,7 @@ func (dm *DNSMessage) forwardRequest() ([]byte, error) {
 		if err != nil {
 			return []byte{}, fmt.Errorf("writeForwardRequest error: %w", err)
 		}
-		fmt.Printf("DEBUG: resolver=%s, reqLen=%d, question=%s\n", dm.forwardAddress, len(req), dm.questions[i].Name)
+		fmt.Printf("DEBUG: resolver=%s, reqLen=%d, question=%s, header=%x\n", dm.forwardAddress, len(req), dm.questions[i].Name, req[:12])
 		_, err = conn.Write(req)
 		if err != nil {
 			return []byte{}, fmt.Errorf("error sending request: %w", err)
