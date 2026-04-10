@@ -15,7 +15,7 @@ func (dm *DNSMessage) forwardRequest() ([]byte, error) {
 	defer conn.Close()
 	baseHeader := dm.writeHeader(new(uint16(1)))
 	buf := new(bytes.Buffer)
-	for i := 0; i > int(dm.header.qCount); i++ {
+	for i := 0; i < int(dm.header.qCount); i++ {
 		req, err := writeForwardRequest(baseHeader, dm.questions[i])
 		if err != nil {
 			return []byte{}, fmt.Errorf("writeForwardRequest error: %w", err)
@@ -44,7 +44,7 @@ func (dm *DNSMessage) forwardRequest() ([]byte, error) {
 			off++
 		}
 
-		buf.Write(response[off:])
+		buf.Write(response[off+4:])
 	}
 
 	return buf.Bytes(), nil
