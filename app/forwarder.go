@@ -13,7 +13,8 @@ func (dm *DNSMessage) forwardRequest() ([]byte, error) {
 		// handle error
 	}
 	defer conn.Close()
-	baseHeader := dm.writeHeader(new(uint16(1)))
+	qc := uint16(1)
+	baseHeader := dm.writeHeader(&qc)
 	buf := new(bytes.Buffer)
 	for i := 0; i < int(dm.header.qCount); i++ {
 		req, err := writeForwardRequest(baseHeader, dm.questions[i])
