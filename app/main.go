@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 )
@@ -18,7 +19,8 @@ func main() {
 		return
 	}
 	defer udpConn.Close()
-
+	forwardAddress := flag.String("resolver", "", "forwarding server address")
+	flag.Parse()
 	buf := make([]byte, 512)
 
 	for {
@@ -29,7 +31,8 @@ func main() {
 		}
 
 		dnsMessage := DNSMessage{
-			rawRequest: buf[:size],
+			rawRequest:     buf[:size],
+			forwardAddress: *forwardAddress,
 		}
 		if err := dnsMessage.parseQuery(); err != nil {
 			fmt.Println("Failed to parse DNS message:", err)

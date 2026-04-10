@@ -1,9 +1,10 @@
 package main
 
 type DNSMessage struct {
-	rawRequest []byte
-	header     Header
-	questions  []Question
+	rawRequest     []byte
+	header         Header
+	questions      []Question
+	forwardAddress string
 }
 type Header struct {
 	ID      uint16
