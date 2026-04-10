@@ -31,8 +31,8 @@ func (dm *DNSMessage) writeHeader(qCount *uint16) []byte {
 	header := make([]byte, 12)
 
 	binary.BigEndian.PutUint16(header[0:2], dm.header.ID)
-
-	flags := writeFlags(dm.header.Flags)
+	// if qCount is not nil this is a forwarding request
+	flags := writeFlags(dm.header.Flags, qCount != nil)
 
 	binary.BigEndian.PutUint16(header[2:4], flags)
 	if qCount != nil {
@@ -48,9 +48,14 @@ func (dm *DNSMessage) writeHeader(qCount *uint16) []byte {
 	return header
 }
 
-func writeFlags(f Flags) uint16 {
+func writeFlags(f Flags, isForwarding bool) uint16 {
 	flags := uint16(0)
-	qr := uint16(1)
+	var qr uint16
+	if isForwarding {
+		qr = uint16(0)
+	} else {
+		qr = uint16(1)
+	}
 	flags |= qr << 15
 	opcode := f.opCode
 	flags |= opcode << 11
