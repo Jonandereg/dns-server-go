@@ -1,36 +1,47 @@
-[![progress-banner](https://backend.codecrafters.io/progress/dns-server/a4fa279b-a93c-4078-9a56-13b07d197c73)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# DNS Server in Go
 
-This is a starting point for Go solutions to the
-["Build Your Own DNS server" Challenge](https://app.codecrafters.io/courses/dns-server/overview).
+A fully functional DNS server built from scratch in Go as part of the [CodeCrafters "Build Your Own DNS Server" challenge](https://app.codecrafters.io/courses/dns-server/overview).
 
-In this challenge, you'll build a DNS server that's capable of parsing and
-creating DNS packets, responding to DNS queries, handling various record types
-and doing recursive resolve. Along the way we'll learn about the DNS protocol,
-DNS packet format, root servers, authoritative servers, forwarding servers,
-various record types (A, AAAA, CNAME, etc) and more.
+## What it does
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+- Parses and constructs DNS packets at the byte level (no DNS libraries)
+- Handles DNS header and question section parsing, including label compression (pointer resolution)
+- Responds to multiple questions in a single query
+- Forwards queries to an upstream resolver, splitting multi-question packets into individual requests and merging the responses
 
-# Passing the first stage
+## What I learned
 
-The entry point for your `your_program.sh` implementation is in `app/main.go`.
-Study and uncomment the relevant code, and push your changes to pass the first
-stage:
+- **DNS wire format**: how headers, flags, questions, and answer records are encoded as raw bytes with big-endian ordering
+- **Label compression**: recursive pointer resolution where domain names reference earlier parts of the packet to save space
+- **Bit manipulation in Go**: packing and unpacking flag fields from a uint16 using shifts and masks
+- **UDP networking in Go**: using `net.ListenUDP` and `net.Dial("udp", ...)` for connectionless communication
+- **Incremental protocol parsing**: moving from a `bytes.Reader` approach to raw byte slices with offset tracking, which was necessary to support compression pointers that jump to arbitrary positions
 
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
+## Project structure
+
+```
+app/
+  main.go       - UDP server loop and flag parsing
+  models.go     - Data structures (DNSMessage, Header, Flags, Question)
+  parser.go     - Parsing logic: header, questions, name decompression
+  writer.go     - Serialization: header, flags, questions, answer records
+  forwarder.go  - Query forwarding with request splitting and response merging
 ```
 
-Time to move on to the next stage!
+## What I'd improve next
 
-# Stage 2 & beyond
+- Add bounds checking on packet parsing to handle malformed input gracefully
+- Tighten up error handling in the forwarding path
+- Add read timeouts on upstream resolver connections
+- Refactor `writeHeader`/`writeFlags` to cleanly separate query construction from response construction
+- Parse answer records into a structured model instead of passing raw bytes
 
-Note: This section is for stages 2 and beyond.
+## Running
 
-1. Ensure you have `go (1.26)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `app/main.go`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+```sh
+# Standard mode (responds with hardcoded answers)
+./your_program.sh
+
+# Forwarding mode (proxies to an upstream resolver)
+./your_program.sh --resolver <ip>:<port>
+```
